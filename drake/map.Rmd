@@ -1,0 +1,79 @@
+---
+title: "Untitled"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(osmdata)
+library(dplyr)
+library(plotly)
+library(stringr)
+library(sf)
+library(tidyverse)
+
+#saveRDS(df_ntp,file = "osmData_NewTaipei.rds")
+readRDS("osmData_NewTaipei.rds")-> df_ntp
+
+#write.csv(df_ntp$osm_multipolygons$name,file="name.csv")
+#read.csv("name.csv") -> name
+
+read.csv("0628NTP_confirmed_data.csv") -> confirmed
+```
+
+```{r}
+confirmed$有效地址 %>% as.character() -> confirmed$有效地址
+
+confirmed %>% filter(.,str_detect(`有效地址`,"TRUE")) -> confirmed
+confirmed %>% filter(.,is.na(confirmed$解隔離日)) -> confirmed
+
+```
+
+```{r}
+table(confirmed$TOWNNAME) -> town_counted
+```
+
+```{r}
+data.frame(
+  region = df_ntp$osm_multipolygons$name.en,
+  caseNumber = c(36,5,0,16,2,72,4,5,0,0,3,0,127,356,332,127,136,0,49,32,248,90,43,13,167,27,36,9,0)
+) -> to_join
+```
+
+```{r}
+df_ntp$osm_multipolygons %>%
+  mutate(
+    name_and_case_number = paste0(df_ntp$osm_multipolygons$name.en,": ",df_ntp$osm_multipolygons$caseNumber),
+    Range = df_ntp$osm_multipolygons$caseNumber
+  ) -> df_ntp$osm_multipolygons
+```
+
+```{r}
+case = colorspace::sequential_hcl(n=3, h =0 , c = c(200, 0), l = 30, rev = TRUE, power = 1.75)
+grDevices::colorRamp(case) -> case_colorGenerator
+```
+
+```{r}
+plotly::plot_ly() %>%
+  add_sf(
+    data = df_ntp$osm_multipolygons ,
+    type= "scatter",
+    split= ~name.en,
+    showlegend=F,
+    hoverinfo="text",
+    text= ~name_and_case_number,
+    hoveron = "fills",
+    stroke=I("gray"),
+    color = ~Range, 
+    colors = grDevices::colorRamp(case),
+    hoverlabel = list(
+      bgcolor="orange",
+      font=list(
+        color="black",
+        size=20
+      )
+    )
+  )
+```
+
