@@ -1,0 +1,13 @@
+name: Covid19-Dashboard
+title: Covid19-Dashboard
+username:
+account: k1607k-chiwei
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4395137
+bundleId: 4829304
+url: https://k1607k-chiwei.shinyapps.io/Covid19-Dashboard/
+when: 1626533964.82019
+lastSyncTime: 1626533964.82019
+asMultiple: FALSE
+asStatic: FALSE

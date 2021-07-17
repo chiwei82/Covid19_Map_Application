@@ -11,42 +11,17 @@ library(dplyr)
 library(plotly)
 library(stringr)
 library(sf)
+library(ggmap)
 library(tidyverse)
+library(readr)
+library(leaflet)
 
 #saveRDS(df_ntp,file = "osmData_NewTaipei.rds")
-readRDS("osmData_NewTaipei.rds")-> df_ntp
+readRDS("support/osmData_NewTaipei.rds")-> df_ntp
+readRDS("support/confirmed.rds") -> confirmed
+readRDS("support/osmData_NewTaipei_fullEN.rds")-> test
+NTP_confirmed_data <- read.csv("support/0628NTP_confirmed_data.csv")
 
-#write.csv(df_ntp$osm_multipolygons$name,file="name.csv")
-#read.csv("name.csv") -> name
-
-read.csv("0628NTP_confirmed_data.csv") -> confirmed
-```
-
-```{r}
-confirmed$有效地址 %>% as.character() -> confirmed$有效地址
-
-confirmed %>% filter(.,str_detect(`有效地址`,"TRUE")) -> confirmed
-confirmed %>% filter(.,is.na(confirmed$解隔離日)) -> confirmed
-
-```
-
-```{r}
-table(confirmed$TOWNNAME) -> town_counted
-```
-
-```{r}
-data.frame(
-  region = df_ntp$osm_multipolygons$name.en,
-  caseNumber = c(36,5,0,16,2,72,4,5,0,0,3,0,127,356,332,127,136,0,49,32,248,90,43,13,167,27,36,9,0)
-) -> to_join
-```
-
-```{r}
-df_ntp$osm_multipolygons %>%
-  mutate(
-    name_and_case_number = paste0(df_ntp$osm_multipolygons$name.en,": ",df_ntp$osm_multipolygons$caseNumber),
-    Range = df_ntp$osm_multipolygons$caseNumber
-  ) -> df_ntp$osm_multipolygons
 ```
 
 ```{r}
@@ -54,10 +29,10 @@ case = colorspace::sequential_hcl(n=3, h =0 , c = c(200, 0), l = 30, rev = TRUE,
 grDevices::colorRamp(case) -> case_colorGenerator
 ```
 
-```{r}
+```{r, 確診者待解除隔離面量圖}
 plotly::plot_ly() %>%
   add_sf(
-    data = df_ntp$osm_multipolygons ,
+    data =  test1,
     type= "scatter",
     split= ~name.en,
     showlegend=F,
@@ -71,9 +46,76 @@ plotly::plot_ly() %>%
       bgcolor="orange",
       font=list(
         color="black",
-        size=20
+        size=15
       )
     )
   )
+```
+
+```{r, 確診者待解除w/Leaflet} 
+greenLeafIcon <- makeIcon(
+  iconUrl = "http://leafletjs.com/examples/custom-icons/leaf-green.png",
+  iconWidth = 38, iconHeight = 95,
+  iconAnchorX = 22, iconAnchorY = 94,
+  shadowUrl = "http://leafletjs.com/examples/custom-icons/leaf-shadow.png",
+  shadowWidth = 50, shadowHeight = 64,
+  shadowAnchorX = 4, shadowAnchorY = 62
+)
+
+m <- leaflet(confirmed) %>% 
+  setView(
+  lng = 121.5454, lat=24.9928,zoom = 10.3
+   ) %>% addTiles() %>% 
+  addMarkers(
+    lng = ~lon,
+  lat = ~lat,
+  icon = greenLeafIcon,
+  clusterOptions = markerClusterOptions())
+
+m
+```
+
+```{r}
+readr::read_csv("support/regionCenter.csv") -> centerData
+```
+
+```{r, ggplot確診數量時間序列圖}
+table(NTP_confirmed_data$發病日.從BO抓取.) -> day_confirmed
+day_confirmed %>% as.data.frame() -> day_confirmed_dataFrame
+
+day_confirmed_dataFrame %>% mutate(
+   date =   day_confirmed_dataFrame$Var1,
+   daycases = day_confirmed_dataFrame$Freq
+) -> day_confirmed_dataFrame
+
+day_confirmed_dataFrame %>% select(.,-c(Var1,Freq)) -> day_confirmed_dataFrame
+
+day_confirmed_dataFrame$date %>% as.Date() -> day_confirmed_dataFrame$date
+
+day_confirmed_dataFrame %>% 
+  ggplot()+
+  geom_col(
+    data = day_confirmed_dataFrame,
+    aes(x = date, y = daycases),
+    
+) 
+```
+
+```{r plotly新增病例時間序列圖}
+NTP_confirmed_data$發病日.從BO抓取. %>% as.Date() -> NTP_confirmed_data$發病日.從BO抓取.
+#saveRDS(NTP_confirmed_data,"NTP_confirmed_data.rds")
+
+plot_ly(
+  data = NTP_confirmed_data,
+  x = ~發病日.從BO抓取. ,
+  type = "histogram",
+  stroke = I("white")
+) %>% config(displayModeBar = F)
+```
+
+```{r}
+test %>% select(.,-c(name.id,name.it,name.lzh,name.nan.HJ,name.nan.POJ,name.nan.TL,name.pl,name.ru,name.tay,old.hak.HJ,old.nan.HJ,old_name.en)) ->test1
+
+saveRDS(test1,"osm_test.rds")
 ```
 
