@@ -20,7 +20,7 @@ library(leaflet)
 readRDS("support/osmData_NewTaipei.rds")-> df_ntp
 readRDS("support/confirmed.rds") -> confirmed
 readRDS("support/osmData_NewTaipei_fullEN.rds")-> test
-NTP_confirmed_data <- read.csv("support/0628NTP_confirmed_data.csv")
+NTP_confirmed_data <- read_csv("support/0628NTP_confirmed_data.csv")
 
 ```
 
@@ -32,7 +32,7 @@ grDevices::colorRamp(case) -> case_colorGenerator
 ```{r, 確診者待解除隔離面量圖}
 plotly::plot_ly() %>%
   add_sf(
-    data =  test1,
+    data =  df_ntp$osm_multipolygons,
     type= "scatter",
     split= ~name.en,
     showlegend=F,
@@ -102,20 +102,66 @@ day_confirmed_dataFrame %>%
 ```
 
 ```{r plotly新增病例時間序列圖}
-NTP_confirmed_data$發病日.從BO抓取. %>% as.Date() -> NTP_confirmed_data$發病日.從BO抓取.
+NTP_confirmed_data$`發病日(從BO抓取)` %>% as.Date() -> NTP_confirmed_data$`發病日(從BO抓取)`
 #saveRDS(NTP_confirmed_data,"NTP_confirmed_data.rds")
+
+NTP_confirmed_data %>% filter(.,`有效地址` = TRUE) -> test
+
+table(NTP_confirmed_data$`發病日(從BO抓取)`) %>% as.data.frame() -> test
+
+table(test$發病日.從BO抓取.) %>% as.data.frame() -> table1
+
+table1 %>% mutate(
+  Var1 = as.Date(Var1)
+) -> table1
 
 plot_ly(
   data = NTP_confirmed_data,
-  x = ~發病日.從BO抓取. ,
+  x = ~`發病日(從BO抓取)`,
   type = "histogram",
   stroke = I("white")
 ) %>% config(displayModeBar = F)
+
+plot_ly(
+  data = table1,
+  x = ~`Var1`,
+  y = ~Freq,
+  type = "bar",
+  stroke = I("white")
+) %>% config(displayModeBar = F) 
+
+plot_ly(
+  data = table1,
+  x = ~`Var1`,
+  y = ~Freq,
+  type = "scatter",
+  mode = "line",
+  stroke = I("white")
+) 
 ```
 
 ```{r}
-test %>% select(.,-c(name.id,name.it,name.lzh,name.nan.HJ,name.nan.POJ,name.nan.TL,name.pl,name.ru,name.tay,old.hak.HJ,old.nan.HJ,old_name.en)) ->test1
+NTP_confirmed_data$TOWNNAME %>% table() -> confirmed_by_city
+confirmed_by_city %>% as.data.frame() -> cumulative_city
 
-saveRDS(test1,"osm_test.rds")
+cumulative_city$. <- factor(cumulative_city$., levels = unique(cumulative_city$.)[order(cumulative_city$Freq, decreasing = F)])
+
+cumulative_city %>% plot_ly(
+  x = ~.,
+  y = ~Freq,
+  type = "bar",
+  marker = list(color = ~Freq,
+                colors = grDevices::colorRamp(case) ,
+                line = list(color = 'rgb(8,48,107)',
+                                  width = 1.5))
+) %>%
+layout(
+     title = list(text = "累積確診量(都市分類)，y為數量", y = 0.95),
+     xaxis = list(title = ""),
+     yaxis = list(title = ""),
+     paper_bgcolor='#cfd8dc',
+     plot_bgcolor='#cfd8dc'
+) -> plotly_cumulative
+
+plotly_cumulative
 ```
-
