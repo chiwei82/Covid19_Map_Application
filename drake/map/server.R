@@ -35,16 +35,27 @@ dailyCases %>% mutate(
 shinyServer(function(input, output){
   
     output$leafletPlot <- leaflet::renderLeaflet({
-      leaflet(confirmed) %>% 
-        setView(
-          lng = 121.5454, lat= 25.05, zoom = 11
-        ) %>% addTiles() %>% 
-        addMarkers(
-          lng = ~lon,
-          lat = ~lat,
-          clusterOptions = markerClusterOptions())
       
-      })
+      if (input$region =="請選擇") {
+        leaflet(confirmed)%>% 
+          setView(
+            lng = 121.5454, lat= 25.05, zoom = 11
+          ) %>% addTiles() %>% 
+          addMarkers(
+            lng = ~lon,
+            lat = ~lat,
+            clusterOptions = markerClusterOptions())
+      }else{
+        leaflet(confirmed %>% filter(.,TOWNNAME==input$region ))%>% 
+          setView(
+            lng = 121.5454, lat= 25.05, zoom = 11
+          ) %>% addTiles() %>% 
+          addMarkers(
+            lng = ~lon,
+            lat = ~lat,
+            clusterOptions = markerClusterOptions())
+      } 
+    })
     
     output$plotlyPlot <- plotly::renderPlotly({
       plotly::plot_ly() %>%
